@@ -29,26 +29,46 @@
   const saveEditBtn = document.getElementById("saveEditBtn");
   const ctx = document.getElementById("bpChart").getContext("2d");
 
-  const chart = new Chart(ctx, {
+  const chart = window.myChart = new Chart(ctx, {
     type: "line",
     data: { labels: [], datasets: [] },
     options: {
+      parsing: false,
       responsive: true,
-      scales: { x: { type: "time", time: { unit: "day" } } },
+      scales: {
+        x: { type: "time", time: { unit: "day" }, ticks:{color:'#e9ecef'}, grid:{color:'#333'} },
+        y: { ticks:{color:'#e9ecef'}, grid:{color:'#333'} }
+      },
+      plugins:{ legend:{ labels:{ color:'#e9ecef'} } }
     },
   });
 
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
     const data = Object.fromEntries(new FormData(form));
-    const ts = data.date ? `${data.date}T00:00:00` : new Date().toISOString();
+    let ts;
+    if (data.date) {
+      // combine chosen date with current time to ensure uniqueness (seconds precision)
+      const now = new Date();
+      const timePart = now.toISOString().slice(11,19); // HH:MM:SS
+      ts = `${data.date}T${timePart}`;
+    } else {
+      ts = new Date().toISOString();
+    }
     const reading = {
       timestamp: ts,
       systolic: Number(data.systolic),
       diastolic: Number(data.diastolic),
       pulse: Number(data.pulse),
     };
-    await db.put("readings", reading);
+    try {
+      await db.put("readings", reading);
+      console.log("saved OK", reading);
+    } catch (e) {
+      console.error("save error", e);
+      showToast("保存失敗", false);
+      return;
+    }
     statusEl.textContent = "保存しました";
     showToast("保存しました✅");
     form.reset();
@@ -79,7 +99,14 @@
         diastolic: dia,
         pulse: pulse,
       };
+      try {
       await db.put("readings", reading);
+      console.log("saved OK", reading);
+    } catch (e) {
+      console.error("save error", e);
+      showToast("保存失敗", false);
+      return;
+    }
       statusEl.textContent = "OCR 追加しました";
       showToast("OCR 追加しました✅");
       updateChart();
@@ -143,20 +170,56 @@
     });
   }
 
+  // --- Table helpers ---
+  async function renderTable() {
+    const rows = await getAll();
+    let html = `<thead><tr><th>日時</th><th>SYS</th><th>DIA</th><th>PULSE</th><th></th></tr></thead><tbody>`;
+    rows.forEach((r) => {
+      html += `<tr data-ts="${r.timestamp}"><td>${r.timestamp.slice(0,19)}</td><td>${r.systolic}</td><td>${r.diastolic}</td><td>${r.pulse}</td><td>` +
+        `<button class='btn btn-sm btn-outline-secondary me-1 edit-btn'>✏️</button>` +
+        `<button class='btn btn-sm btn-outline-danger delete-btn'>🗑️</button></td></tr>`;
+    });
+    html += "</tbody>";
+    dataTable.innerHTML = html;
+  }
+
+  async function buildTableHTML() {
+    // Returns DOM element of a table for html2canvas
+    const wrapper = document.createElement("div");
+    wrapper.innerHTML = dataTable.outerHTML;
+    return wrapper.firstChild;
+  }
+
   async function updateChart() {
     const raw = await getAll();
     const range = rangeSelect.value;
-    const data = aggregate(raw, range);
-    chart.data.labels = data.map((d) => d.timestamp);
+    const rows = aggregate(raw, range);
+
+    chart.data.labels = []; // use x/y points instead
     chart.data.datasets = [
-      { label: "SYS", data: data.map((d) => d.systolic), borderColor: "red" },
-      { label: "DIA", data: data.map((d) => d.diastolic), borderColor: "blue" },
-      { label: "PULSE", data: data.map((d) => d.pulse), borderColor: "green" },
+      {
+        label: "SYS",
+        borderColor: "red",
+        tension: 0.1,
+        data: rows.map((r) => ({ x: r.timestamp, y: r.systolic })),
+      },
+      {
+        label: "DIA",
+        borderColor: "blue",
+        tension: 0.1,
+        data: rows.map((r) => ({ x: r.timestamp, y: r.diastolic })),
+      },
+      {
+        label: "PULSE",
+        borderColor: "green",
+        tension: 0.1,
+        data: rows.map((r) => ({ x: r.timestamp, y: r.pulse })),
+      },
     ];
-    chart.update();
+    chart.update("active");
     await renderTable();
   }
 
   updateChart();
-    renderTable();
+  renderTable();
 })();
