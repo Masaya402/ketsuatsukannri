@@ -11,6 +11,8 @@
   const statusEl = document.getElementById("status");
   const form = document.getElementById("manualForm");
   const rangeSelect = document.getElementById("rangeSelect");
+  const imgInput = document.getElementById("imgInput");
+  const pdfBtn = document.getElementById("pdfBtn");
   const ctx = document.getElementById("bpChart").getContext("2d");
 
   const chart = new Chart(ctx, {
@@ -39,6 +41,55 @@
   });
 
   rangeSelect.addEventListener("change", updateChart);
+
+  // OCR image upload
+  imgInput.addEventListener("change", async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    statusEl.textContent = "OCR 解析中…";
+    const worker = await Tesseract.createWorker();
+    await worker.loadLanguage("eng+jpn");
+    await worker.initialize("eng+jpn");
+    const {
+      data: { text },
+    } = await worker.recognize(file);
+    await worker.terminate();
+    const match = text.match(/(\d{2,3})\D+(\d{2,3})\D+(\d{2,3})/);
+    if (match) {
+      const [_, sys, dia, pulse] = match.map(Number);
+      const reading = {
+        timestamp: new Date().toISOString(),
+        systolic: sys,
+        diastolic: dia,
+        pulse: pulse,
+      };
+      await db.put("readings", reading);
+      statusEl.textContent = "OCR 追加しました";
+      updateChart();
+    } else {
+      statusEl.textContent = "OCR 解析失敗";
+    }
+    imgInput.value = "";
+  });
+
+  // PDF generation
+  pdfBtn.addEventListener("click", async () => {
+    statusEl.textContent = "PDF 生成中…";
+    const canvasElem = document.getElementById("bpChart");
+    const chartImg = canvasElem.toDataURL("image/png", 1.0);
+
+    const tableHTML = await buildTableHTML();
+    const tableCanvas = await html2canvas(tableHTML);
+
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    doc.text("血圧＆脈拍 レポート", 10, 10);
+    doc.addImage(chartImg, "PNG", 10, 20, 180, 80);
+    const tableImg = tableCanvas.toDataURL("image/png");
+    doc.addImage(tableImg, "PNG", 10, 105, 180, 80);
+    doc.save("bp_report.pdf");
+    statusEl.textContent = "PDF 保存完了";
+  });
 
   async function getAll() {
     return (await db.getAll("readings")).sort(
