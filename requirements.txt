@@ -1,0 +1,6 @@
+Flask>=2.3
+pillow
+pytesseract
+pandas
+matplotlib
+weasyprint
