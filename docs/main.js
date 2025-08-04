@@ -9,6 +9,15 @@
   });
 
   const statusEl = document.getElementById("status");
+  const toastEl = document.getElementById("toast");
+  const toastBody = document.getElementById("toastBody");
+  const toast = new bootstrap.Toast(toastEl, { delay: 3000 });
+  function showToast(msg, success = true) {
+    toastEl.classList.toggle("text-bg-primary", success);
+    toastEl.classList.toggle("text-bg-danger", !success);
+    toastBody.textContent = msg;
+    toast.show();
+  }
   const form = document.getElementById("manualForm");
   const rangeSelect = document.getElementById("rangeSelect");
   const imgInput = document.getElementById("imgInput");
@@ -36,6 +45,7 @@
     };
     await db.put("readings", reading);
     statusEl.textContent = "保存しました";
+    showToast("保存しました✅");
     form.reset();
     updateChart();
   });
@@ -65,9 +75,11 @@
       };
       await db.put("readings", reading);
       statusEl.textContent = "OCR 追加しました";
+      showToast("OCR 追加しました✅");
       updateChart();
     } else {
       statusEl.textContent = "OCR 解析失敗";
+      showToast("OCR 解析失敗❌", false);
     }
     imgInput.value = "";
   });
@@ -89,6 +101,7 @@
     doc.addImage(tableImg, "PNG", 10, 105, 180, 80);
     doc.save("bp_report.pdf");
     statusEl.textContent = "PDF 保存完了";
+    showToast("PDF 保存完了✅");
   });
 
   async function getAll() {
