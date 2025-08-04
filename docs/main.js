@@ -22,6 +22,11 @@
   const rangeSelect = document.getElementById("rangeSelect");
   const imgInput = document.getElementById("imgInput");
   const pdfBtn = document.getElementById("pdfBtn");
+  const dataTable = document.getElementById("dataTable");
+  const editModalEl = document.getElementById("editModal");
+  const editModal = new bootstrap.Modal(editModalEl);
+  const editForm = document.getElementById("editForm");
+  const saveEditBtn = document.getElementById("saveEditBtn");
   const ctx = document.getElementById("bpChart").getContext("2d");
 
   const chart = new Chart(ctx, {
@@ -48,6 +53,7 @@
     showToast("保存しました✅");
     form.reset();
     updateChart();
+    renderTable();
   });
 
   rangeSelect.addEventListener("change", updateChart);
@@ -77,6 +83,7 @@
       statusEl.textContent = "OCR 追加しました";
       showToast("OCR 追加しました✅");
       updateChart();
+    renderTable();
     } else {
       statusEl.textContent = "OCR 解析失敗";
       showToast("OCR 解析失敗❌", false);
@@ -147,7 +154,9 @@
       { label: "PULSE", data: data.map((d) => d.pulse), borderColor: "green" },
     ];
     chart.update();
+    await renderTable();
   }
 
   updateChart();
+    renderTable();
 })();
