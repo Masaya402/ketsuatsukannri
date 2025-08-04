@@ -57,8 +57,13 @@
         </div>
 
         <button id="pdfBtn" class="btn btn-outline-primary mb-3">PDF 出力</button>
+        <button id="seedBtn" class="btn btn-outline-secondary btn-sm mb-3 ms-2">サンプル</button>
 
         <canvas id="bpChart" height="120"></canvas>
+
+        <div class="table-responsive mt-4">
+            <table id="dataTable" class="table table-sm table-hover align-middle text-center"></table>
+        </div>
 
         <!-- Toast container -->
         <div class="position-fixed top-0 end-0 p-3" style="z-index:1100">
@@ -74,5 +79,29 @@
     <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js" defer></script>
     <script src="main.js" defer></script>
+<!-- Edit Modal -->
+    <div class="modal fade" id="editModal" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">計測値を編集</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <form id="editForm" class="row g-2">
+              <input type="hidden" name="originalTs" />
+              <div class="col-4"><input type="number" name="systolic" class="form-control" placeholder="SYS" min="50" max="300" required></div>
+              <div class="col-4"><input type="number" name="diastolic" class="form-control" placeholder="DIA" min="30" max="200" required></div>
+              <div class="col-4"><input type="number" name="pulse" class="form-control" placeholder="PULSE" min="30" max="250" required></div>
+            </form>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">キャンセル</button>
+            <button id="saveEditBtn" type="button" class="btn btn-primary">保存</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
 </body>
 </html>

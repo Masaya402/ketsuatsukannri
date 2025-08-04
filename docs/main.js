@@ -1,6 +1,8 @@
 // Placeholder JS – full client implementation will be added in next step
 // Client-side blood pressure manager Phase 1: manual entry + IndexedDB + Chart.js
 
+document.addEventListener("DOMContentLoaded", () => {
+  if (location.search) history.replaceState(null, "", location.pathname);
 (async () => {
   const db = await idb.openDB("bp-db", 1, {
     upgrade(db) {
@@ -223,3 +225,19 @@
   updateChart();
   renderTable();
 })();
+
+  const seedBtn = document.getElementById("seedBtn");
+  seedBtn?.addEventListener("click", async () => {
+    const base = new Date();
+    const samples = [0,1,2].map(i=>({
+      timestamp: new Date(base.getTime()-i*864e5).toISOString(),
+      systolic: 120+i*2,
+      diastolic: 80+i,
+      pulse: 70+i*3,
+    }));
+    for(const r of samples) await idb.openDB("bp-db",1).then(db=>db.put("readings",r));
+    showToast("サンプル追加✅");
+    window.myChart && window.myChart.destroy();
+    location.reload();
+  });
+});
